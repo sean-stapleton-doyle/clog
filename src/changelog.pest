@@ -1,0 +1,79 @@
+ws      = _{ " " | "\t" }
+NEWLINE = _{ "\r\n" | "\n" | "\r" }
+
+version_header_start  = _{ "##" ~ ws* ~ "[" }
+change_header_start   = _{ "###" ~ ws* }
+link_definition_start = _{ "[" ~ (semver | "Unreleased" | unknown_version) ~ "]:" }
+list_item_start       = _{ ws* ~ ("-" | "*") ~ ws+ }
+
+file = {
+    SOI ~ (top_level_heading)? ~ preamble ~ versions ~ links ~ EOI
+}
+
+versions = { version_entry* }
+links    = { link_definition* }
+
+top_level_heading = { "#" ~ ws* ~ "Changelog" ~ ws* ~ NEWLINE+ }
+
+preamble_line =  { !(version_header_start | link_definition_start) ~ (!NEWLINE ~ ANY)* ~ NEWLINE }
+preamble      = @{ preamble_line* }
+
+// Version
+version_entry = {
+    NEWLINE* ~ version_header ~ version_preamble ~ change_sections
+}
+
+version_preamble = @{ version_preamble_line* }
+change_sections  =  { change_section* }
+
+version_preamble_line = {
+    !(version_header_start | change_header_start | link_definition_start) ~ (!NEWLINE ~ ANY)* ~ NEWLINE
+}
+
+version_header = {
+    "##" ~ ws* ~ "[" ~ version ~ "]" ~ (ws* ~ "-" ~ ws* ~ date)? ~ (ws* ~ yanked)? ~ ws* ~ NEWLINE+
+}
+
+version = @{ "Unreleased" | semver | unknown_version }
+
+semver          = @{
+    ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT+)* ~ (pre_release)?
+}
+pre_release     = @{ "-" ~ (ASCII_ALPHANUMERIC | "." | "-")+ }
+unknown_version = @{ (!"]" ~ ANY)+ }
+date            = @{ ASCII_DIGIT{4} ~ "-" ~ ASCII_DIGIT{2} ~ "-" ~ ASCII_DIGIT{2} }
+yanked          = @{ "[YANKED]" }
+
+change_section = {
+    NEWLINE* ~ change_header ~ change_items
+}
+change_items   = { list_item+ }
+
+change_header =  {
+    change_header_start ~ change_type ~ ws* ~ NEWLINE+
+}
+change_type   = @{
+    "Added"
+  | "Changed"
+  | "Deprecated"
+  | "Removed"
+  | "Fixed"
+  | "Security"
+}
+
+// Links
+
+list_item         =  {
+    list_item_start ~ item_text_line ~ (continuation_line)*
+}
+item_text_line    = @{ (!NEWLINE ~ ANY)* ~ NEWLINE }
+continuation_line = @{
+    ws{2,} ~ !(list_item_start | change_header_start | version_header_start | link_definition_start) ~ (!NEWLINE ~ ANY)* ~ NEWLINE?
+}
+
+link_version =  { version }
+link_url     = @{ (!NEWLINE ~ ANY)* }
+
+link_definition = {
+    NEWLINE* ~ "[" ~ link_version ~ "]:" ~ ws* ~ link_url ~ NEWLINE
+}
