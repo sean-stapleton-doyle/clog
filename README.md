@@ -1,6 +1,6 @@
 # clog
 
-A `pest`-based parser for [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) formatted `CHANGELOG.md` files.
+A `pest`-based parser for [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) formatted `CHANGELOG.md` files. See [changelog.pest](src/changelog.pest) for the grammar.
 
 ## Binary
 
